@@ -226,7 +226,7 @@ module Beaker
 
         container_opts = get_container_opts(host, image_name)
         if host['dockeropts'] || @options[:dockeropts]
-          dockeropts = host['dockeropts'] || @options[:dockeropts]
+          dockeropts = deep_merge(@options[:dockeropts], host['dockeropts'])
           dockeropts.each do |k, v|
             container_opts[k] = v
           end
@@ -636,6 +636,22 @@ module Beaker
     # return true if we are inside a docker container
     def in_container?
       File.file?('/.dockerenv')
+    end
+
+    def deep_merge(hash1, hash2)
+      return hash2 if hash1.nil?
+      return hash1 if hash2.nil?
+      return nil if hash1.nil? && hash2.nil?
+
+      hash1.merge(hash2) do |_key, old_val, new_val|
+        if old_val.is_a?(Hash) && new_val.is_a?(Hash)
+          deep_merge(old_val, new_val)
+        elsif old_val.is_a?(Array) && new_val.is_a?(Array)
+          old_val | new_val
+        else
+          new_val
+        end
+      end
     end
   end
 end
